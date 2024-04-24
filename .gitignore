@@ -1,7 +1,7 @@
 # Dataset dirs
 raw/
 datasets/
-
+outputs/
 
 .DS_Store
 .idea
