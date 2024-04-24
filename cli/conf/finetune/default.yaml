@@ -10,6 +10,13 @@ run_name: ???
 seed: 0
 tf32: true
 compile: false  # set to mode: default, reduce-overhead, max-autotune
+
+# Include grid search for finding best hyperparams
+enable_search: false
+hparams_search:
+  batch_size: [32, 64, 128]
+  accumulate_grad_batches: [1, 2, 4]
+
 trainer:
   _target_: lightning.Trainer
   accelerator: auto
@@ -37,17 +44,18 @@ trainer:
       patience: 3
       mode: min
       strict: false
+      verbose: true
   max_epochs: 100
   enable_progress_bar: true
-  accumulate_grad_batches: 1
+  accumulate_grad_batches: 32
   gradient_clip_val: 1.0
   gradient_clip_algorithm: norm
 train_dataloader:
   _target_: uni2ts.data.loader.DataLoader
-  batch_size: 128
+  batch_size: 32
   batch_size_factor: 2.0
   cycle: true
-  num_batches_per_epoch: 100
+  num_batches_per_epoch: 250
   shuffle: true
   num_workers: 11
   collate_fn:
@@ -55,7 +63,7 @@ train_dataloader:
     max_length: ${model._args_.module_kwargs.max_seq_len}
     seq_fields: ${cls_getattr:${model._target_},seq_fields}
     pad_func_map: ${cls_getattr:${model._target_},pad_func_map}
-  pin_memory: true
+  pin_memory: false
   drop_last: false
   fill_last: false
   worker_init_fn: null
@@ -63,7 +71,7 @@ train_dataloader:
   persistent_workers: true
 val_dataloader:
   _target_: uni2ts.data.loader.DataLoader
-  batch_size: 128
+  batch_size: 32
   batch_size_factor: 2.0
   cycle: false
   num_batches_per_epoch: null

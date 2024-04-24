@@ -1,0 +1,16 @@
+_target_: uni2ts.data.builder.ConcatDatasetBuilder
+_args_:
+  _target_: uni2ts.data.builder.simple.generate_eval_builders
+  dataset: AAPL_10sec_012021_eval
+  offset: 181621
+  eval_length: 480
+
+  # Predict next 5 minutes 15 minutes and 25 minutes of 10 second candles 
+  # for (1, 3, and 5 min candles sticks)
+  prediction_lengths: [24, 72, 120]
+
+  # Use last 5 hours of data always to make predictions
+  context_lengths: [1800]
+
+  # Patch sizes for predictions
+  patch_sizes: [64, 128]

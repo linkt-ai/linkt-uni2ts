@@ -20,11 +20,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from typing import Optional
 
+import itertools
 import hydra
 import lightning as L
 import torch
 from hydra.utils import call, get_class, instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import Dataset, DistributedSampler
 
 from uni2ts.common import hydra_util  # noqa: hydra resolvers
@@ -101,6 +102,31 @@ class DataModule(L.LightningDataModule):
 
 @hydra.main(version_base="1.3", config_path="conf/finetune", config_name="default")
 def main(cfg: DictConfig):
+    if cfg.enable_search:
+        # Get the hyperparameter search space from the configuration
+        search_space = cfg.hparams_search
+
+        # Generate all possible combinations of hyperparameters
+        keys, values = zip(*search_space.items())
+        hyperparameter_combinations = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
+        # Iterate over the hyperparameter combinations
+        for hyperparameters in hyperparameter_combinations:
+            # Create a new configuration with the current hyperparameters
+            search_cfg = OmegaConf.create(cfg)
+
+            # Update the configuration with the current hyperparameters
+            search_cfg.train_dataloader.batch_size = hyperparameters["batch_size"]
+            search_cfg.trainer.accumulate_grad_batches = hyperparameters["accumulate_grad_batches"]
+
+            # Call the training function with the current configuration
+            train(search_cfg)
+            print(f"Batch Size: {hyperparameters['batch_size']} -- Accumulated Grad Batches: {hyperparameters['accumulate_grad_batches']}")
+    else:
+        # Call the training function with the original configuration
+        train(cfg)
+
+def train(cfg: DictConfig):
     if cfg.tf32:
         assert cfg.trainer.precision == 32
         torch.backends.cuda.matmul.allow_tf32 = True
@@ -121,6 +147,11 @@ def main(cfg: DictConfig):
         else None
     )
     L.seed_everything(cfg.seed + trainer.logger.version, workers=True)
+
+    # Access hyperparameters from the configuration
+    batch_size = cfg.train_dataloader.batch_size
+    accumulate_grad_batches = cfg.trainer.accumulate_grad_batches
+
     trainer.fit(
         model,
         datamodule=DataModule(cfg, train_dataset, val_dataset),
