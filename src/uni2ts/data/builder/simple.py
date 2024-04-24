@@ -13,6 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import os
 import argparse
 from dataclasses import dataclass
 from itertools import product
@@ -112,7 +113,7 @@ class SimpleDatasetBuilder(DatasetBuilder):
     dataset: str
     weight: float = 1.0
     sample_time_series: Optional[SampleTimeSeriesType] = SampleTimeSeriesType.NONE
-    storage_path: Path = env.CUSTOM_DATA_PATH
+    storage_path: Path = os.getenv("CUSTOM_DATA_PATH", "datasets")
 
     def __post_init__(self):
         self.storage_path = Path(self.storage_path)
@@ -177,7 +178,7 @@ class SimpleEvalDatasetBuilder(DatasetBuilder):
     prediction_length: Optional[int]
     context_length: Optional[int]
     patch_size: Optional[int]
-    storage_path: Path = env.CUSTOM_DATA_PATH
+    storage_path: Path = os.getenv("CUSTOM_DATA_PATH", "datasets")
 
     def __post_init__(self):
         self.storage_path = Path(self.storage_path)
@@ -230,7 +231,7 @@ def generate_eval_builders(
     prediction_lengths: list[int],
     context_lengths: list[int],
     patch_sizes: list[int],
-    storage_path: Path = env.CUSTOM_DATA_PATH,
+    storage_path: Path = os.getenv("CUSTOM_DATA_PATH", "datasets"),
 ) -> list[SimpleEvalDatasetBuilder]:
     return [
         SimpleEvalDatasetBuilder(
